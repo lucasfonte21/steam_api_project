@@ -1,10 +1,12 @@
 //imports
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const session = require('express-session');
 const passport = require('./config/passport');
-require('dotenv').config();
+const authRoutes = require('./routes/auth');
+
 
 //setup
 const app = express();
@@ -28,10 +30,12 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use('/api/auth', authRoutes);
 
 app.get('/api/test', (req, res) => {
     res.json({ message: 'hello from server' });
 });
+
 
 //start server
 app.listen(PORT, () => {
