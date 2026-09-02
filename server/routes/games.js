@@ -3,6 +3,7 @@ const axios = require('axios');
 const GameLibraryEntry = require('../models/GameLibraryEntry');
 const User = require('../models/User');
 const router = express.Router();
+const PlaytimeSnapshot = require('../models/PlaytimeSnapshot');
 
 router.post('/sync', async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -32,6 +33,12 @@ router.post('/sync', async (req, res) => {
                 },
                 { upsert: true, new: true }
             );
+
+            await PlaytimeSnapshot.create({
+                userId: req.user._id,
+                appId: game.appid,
+                totalPlaytimeMinutes: game.playtime_forever
+            });
         }
 
         await User.findByIdAndUpdate(req.user._id, { lastSyncedAt: new Date() });
