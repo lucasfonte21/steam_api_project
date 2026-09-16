@@ -1,6 +1,7 @@
 const express = require('express');
 const { syncUserLibrary } = require('../services/syncService');
 const router = express.Router();
+const { runSnapshotForAllUsers } = require('../jobs/snapshotJob');
 
 router.post('/sync', async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -13,6 +14,15 @@ router.post('/sync', async (req, res) => {
     } catch (error) {
         console.log('Sync error:', error.message);
         res.status(500).json({ message: 'Sync failed' });
+    }
+});
+
+router.post('/run-job', async (req, res) => {
+    try {
+        await runSnapshotForAllUsers();
+        res.json({ message: 'Job completed - check server logs' });
+    } catch (error) {
+        res.status(500).json({ message: 'Job failed' });
     }
 });
 

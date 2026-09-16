@@ -7,13 +7,14 @@ const session = require('express-session');
 const passport = require('./config/passport');
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/games');
-
+const { startSnapshotJob } = require('./jobs/snapshotJob');
 
 //setup
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 connectDB();
+startSnapshotJob();
 
 //middleware
 app.use(cors({

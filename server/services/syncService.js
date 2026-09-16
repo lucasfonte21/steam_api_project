@@ -22,7 +22,7 @@ const syncUserLibrary = async (user) => {
                 imgIconUrl: game.img_icon_url,
                 lastSyncedAt: new Date()
             },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         await PlaytimeSnapshot.create({
