@@ -17,6 +17,10 @@ const playtimeSnapshotSchema = new mongoose.Schema({
     capturedAt: {
         type: Date,
         default: Date.now
+    },
+    isSeedData: {
+        type: Boolean,
+        default: false
     }
 });
 
