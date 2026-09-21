@@ -22,6 +22,9 @@ const gameLibraryEntrySchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    lastPlayedAt: {
+        type: Date
+    },
     imgIconUrl: {
         type: String
     },

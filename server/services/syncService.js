@@ -19,6 +19,7 @@ const syncUserLibrary = async (user) => {
                 name: game.name,
                 totalPlaytimeMinutes: game.playtime_forever,
                 playtimeLastTwoWeeks: game.playtime_2weeks || 0,
+                lastPlayedAt: game.rtime_last_played ? new Date(game.rtime_last_played * 1000) : null,
                 imgIconUrl: game.img_icon_url,
                 lastSyncedAt: new Date()
             },
