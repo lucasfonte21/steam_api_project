@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { formatHours, headerImageUrl } from '../lib/format';
+import { formatHours, headerImageUrl, timeAgo } from '../lib/format';
 
-function GameCard({ game, index }) {
+function GameCard({ game, index, minutes, detail }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
@@ -31,7 +31,10 @@ function GameCard({ game, index }) {
       <h3 className="mt-3 truncate text-sm font-semibold text-ink-bright">
         {game.name}
       </h3>
-      <p className="text-xs text-ink-dim">{formatHours(game.totalPlaytimeMinutes)}</p>
+      <div className="flex items-baseline justify-between gap-3 text-xs text-ink-dim">
+        <span>{formatHours(minutes)}</span>
+        <span className="shrink-0">{detail ?? timeAgo(game.lastPlayedAt)}</span>
+      </div>
     </motion.article>
   );
 }

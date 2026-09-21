@@ -1,27 +1,49 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Search } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import GameCard from '../components/GameCard';
+import Select from '../components/Select';
 import { apiFetch } from '../lib/api';
+import { DEFAULT_RANGE, RANGES, isRange } from '../lib/ranges';
 
-const sorters = {
-  playtime: { label: 'Most played', fn: (a, b) => b.totalPlaytimeMinutes - a.totalPlaytimeMinutes },
-  recent: { label: 'Recently played', fn: (a, b) => b.playtimeLastTwoWeeks - a.playtimeLastTwoWeeks },
-  name: { label: 'Name (A-Z)', fn: (a, b) => a.name.localeCompare(b.name) },
-};
+const lastPlayed = (game) => (game.lastPlayedAt ? new Date(game.lastPlayedAt).getTime() : 0);
 
-const controlClass =
-  'border border-line bg-base px-3 py-2 text-sm text-ink-bright outline-none transition-all duration-200 focus:border-accent focus:glow';
+const SORTS = [
+  { value: 'period', label: 'Most played', fn: (a, b) => b.periodMinutes - a.periodMinutes },
+  { value: 'recent', label: 'Recently played', fn: (a, b) => lastPlayed(b) - lastPlayed(a) },
+  { value: 'total', label: 'All-time playtime', fn: (a, b) => b.totalPlaytimeMinutes - a.totalPlaytimeMinutes },
+  { value: 'name', label: 'Name (A-Z)', fn: (a, b) => a.name.localeCompare(b.name) },
+];
 
 function Library() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState('playtime');
+  const [params, setParams] = useSearchParams();
+
+  const range = isRange(params.get('range')) ? params.get('range') : DEFAULT_RANGE;
+  const sortKey = SORTS.some((sort) => sort.value === params.get('sort')) ? params.get('sort') : 'period';
+  const search = params.get('q') ?? '';
+
+  const updateParam = (key, value) => {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (value) {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['library'],
-    queryFn: () => apiFetch('/api/games'),
+    queryKey: ['library', range],
+    queryFn: () => apiFetch(`/api/games?range=${range}`),
+    placeholderData: (previous) => previous,
   });
 
   const sync = useMutation({
@@ -31,12 +53,17 @@ function Library() {
 
   const games = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const sorter = SORTS.find((sort) => sort.value === sortKey).fn;
+    const hideIdle = sortKey === 'period' && range !== 'all';
+
     return (data?.games ?? [])
       .filter((game) => game.name.toLowerCase().includes(query))
-      .sort(sorters[sortKey].fn);
-  }, [data, search, sortKey]);
+      .filter((game) => !hideIdle || game.periodMinutes > 0)
+      .sort(sorter);
+  }, [data, search, sortKey, range]);
 
   const total = data?.games.length ?? 0;
+  const gridClass = 'grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
 
   return (
     <>
@@ -52,31 +79,32 @@ function Library() {
       </PageHeader>
 
       <div className="mb-8 flex flex-wrap gap-3">
-        <label className="relative flex-1 md:max-w-xs">
+        <label className="relative min-w-0 flex-1 md:max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-dim" />
           <input
             type="search"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => updateParam('q', event.target.value)}
             placeholder="Search games"
-            className={`${controlClass} w-full pl-9`}
+            className="w-full border border-line bg-base py-2 pl-9 pr-3 text-sm text-ink-bright outline-none transition-all duration-200 focus:border-accent focus:glow"
           />
         </label>
-        <select
+        <Select
+          label="Time frame"
+          value={range}
+          onChange={(value) => updateParam('range', value === DEFAULT_RANGE ? '' : value)}
+          options={RANGES}
+        />
+        <Select
+          label="Sort by"
           value={sortKey}
-          onChange={(event) => setSortKey(event.target.value)}
-          className={controlClass}
-        >
-          {Object.entries(sorters).map(([key, { label }]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => updateParam('sort', value === 'period' ? '' : value)}
+          options={SORTS}
+        />
       </div>
 
       {isLoading && (
-        <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className={gridClass}>
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="aspect-[460/215] animate-pulse bg-raised" />
           ))}
@@ -92,12 +120,19 @@ function Library() {
       )}
 
       {!isLoading && total > 0 && games.length === 0 && (
-        <p className="text-sm text-ink-dim">No games match "{search}".</p>
+        <p className="text-sm text-ink-dim">
+          {search ? `No games match "${search}".` : 'Nothing played in this time frame.'}
+        </p>
       )}
 
-      <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className={gridClass}>
         {games.map((game, index) => (
-          <GameCard key={game.appId} game={game} index={index} />
+          <GameCard
+            key={`${range}-${game.appId}`}
+            game={game}
+            index={index}
+            minutes={sortKey === 'total' ? game.totalPlaytimeMinutes : game.periodMinutes}
+          />
         ))}
       </div>
     </>
