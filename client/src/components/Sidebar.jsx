@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Trophy, LayoutGrid, User, Users, LogOut } from 'lucide-react';
+import { House, LayoutGrid, User, Users, LogOut } from 'lucide-react';
 import { API_URL } from '../lib/api';
 
 const links = [
-  { to: '/dashboard', label: 'Top Games', icon: Trophy },
+  { to: '/', label: 'Home', icon: House },
   { to: '/library', label: 'Library', icon: LayoutGrid },
   { to: '/profile', label: 'Profile', icon: User },
   { to: '/friends', label: 'Friends', icon: Users },
@@ -29,7 +29,7 @@ function Sidebar({ user }) {
 
       <nav className="flex md:flex-1 md:flex-col max-md:w-full">
         {links.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} className={linkClass}>
+          <NavLink key={to} to={to} end={to === '/'} className={linkClass}>
             <Icon size={18} />
             {label}
           </NavLink>

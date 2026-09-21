@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import Home from './pages/Home';
 import Library from './pages/Library';
 import Placeholder from './pages/Placeholder';
 
@@ -9,10 +10,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<Layout />}>
-        <Route
-          path="/dashboard"
-          element={<Placeholder title="Top Games" subtitle="Your most played games" />}
-        />
+        <Route path="/" element={<Home />} />
         <Route path="/library" element={<Library />} />
         <Route
           path="/profile"
@@ -23,7 +21,7 @@ function App() {
           element={<Placeholder title="Friends" subtitle="Compare with friends" />}
         />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
