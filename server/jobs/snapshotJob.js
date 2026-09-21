@@ -28,7 +28,7 @@ const runSnapshotForAllUsers = async () => {
 
 const startSnapshotJob = () => {
     cron.schedule('0 */12 * * *', runSnapshotForAllUsers);
-    console.log('Snapshot job scheduled (every 6 hours)');
+    console.log('Snapshot job scheduled (every 12 hours)');
 };
 
 module.exports = { startSnapshotJob, runSnapshotForAllUsers };

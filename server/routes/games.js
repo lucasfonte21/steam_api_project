@@ -2,6 +2,24 @@ const express = require('express');
 const { syncUserLibrary } = require('../services/syncService');
 const router = express.Router();
 const { runSnapshotForAllUsers } = require('../jobs/snapshotJob');
+const GameLibraryEntry = require('../models/GameLibraryEntry');
+
+router.get('/', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'Not logged in' });
+    }
+
+    try {
+        const games = await GameLibraryEntry.find({ userId: req.user._id })
+            .sort({ totalPlaytimeMinutes: -1 })
+            .select('appId name totalPlaytimeMinutes playtimeLastTwoWeeks')
+            .lean();
+        res.json({ games, lastSyncedAt: req.user.lastSyncedAt });
+    } catch (error) {
+        console.log('Library fetch error:', error.message);
+        res.status(500).json({ message: 'Failed to load library' });
+    }
+});
 
 router.post('/sync', async (req, res) => {
     if (!req.isAuthenticated()) {
