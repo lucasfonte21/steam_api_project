@@ -5,9 +5,9 @@ const router = express.Router();
 router.get('/steam', passport.authenticate('steam'));
 
 router.get('/steam/return',
-    passport.authenticate('steam', {failureRedirect: '/'}),
+    passport.authenticate('steam', {failureRedirect: 'http://localhost:5173/login'}),
     (req, res) => {
-        res.redirect('http://localhost:5173/dashboard');
+        res.redirect('http://localhost:5173/');
     }
 );
 

@@ -7,6 +7,7 @@ const session = require('express-session');
 const passport = require('./config/passport');
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/games');
+const homeRoutes = require('./routes/home');
 const { startSnapshotJob } = require('./jobs/snapshotJob');
 
 //setup
@@ -34,6 +35,7 @@ app.use(passport.session());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/home', homeRoutes);
 
 app.get('/api/test', (req, res) => {
     res.json({ message: 'hello from server' });
