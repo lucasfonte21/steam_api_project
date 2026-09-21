@@ -37,14 +37,5 @@ export const timeAgo = (date) => {
   return months < 12 ? `${months}mo ago` : `${Math.floor(months / 12)}y ago`;
 };
 
-// A missing date only means "never played" when total playtime is also zero.
-export const lastPlayedLabel = (game) => {
-  if (game.lastPlayedAt) {
-    return timeAgo(game.lastPlayedAt);
-  }
-
-  return game.totalPlaytimeMinutes === 0 ? 'Never played' : '';
-};
-
 export const headerImageUrl = (appId) =>
   `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`;

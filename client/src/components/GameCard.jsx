@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { formatHours, headerImageUrl, lastPlayedLabel } from '../lib/format';
+import { headerImageUrl } from '../lib/format';
 
-function GameCard({ game, index, minutes, detail }) {
+function GameCard({ game, index, label }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
@@ -31,10 +31,7 @@ function GameCard({ game, index, minutes, detail }) {
       <h3 className="mt-3 truncate text-sm font-semibold text-ink-bright">
         {game.name}
       </h3>
-      <div className="flex items-baseline justify-between gap-3 text-xs text-ink-dim">
-        <span>{formatHours(minutes)}</span>
-        <span className="shrink-0">{detail ?? lastPlayedLabel(game)}</span>
-      </div>
+      {label && <p className="text-xs text-ink-dim">{label}</p>}
     </motion.article>
   );
 }

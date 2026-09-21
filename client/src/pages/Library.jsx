@@ -7,28 +7,53 @@ import GameCard from '../components/GameCard';
 import Select from '../components/Select';
 import { apiFetch } from '../lib/api';
 import { DEFAULT_RANGE, RANGES, isRange } from '../lib/ranges';
+import { formatHours, timeAgo } from '../lib/format';
 
-const lastPlayed = (game) => (game.lastPlayedAt ? new Date(game.lastPlayedAt).getTime() : 0);
+const timestamp = (game) => (game.lastPlayedAt ? new Date(game.lastPlayedAt).getTime() : 0);
+const byName = (a, b) => a.name.localeCompare(b.name);
 
-const SHOW_OPTIONS = [
-  { value: 'all', label: 'All games' },
-  { value: 'unplayed', label: 'Unplayed only' },
+// Each view decides its own filter, order and the single stat shown on a card.
+const VIEWS = [
+  {
+    value: 'period',
+    label: 'Most played',
+    sort: (a, b) => b.periodMinutes - a.periodMinutes || b.totalPlaytimeMinutes - a.totalPlaytimeMinutes,
+    info: (game) => formatHours(game.periodMinutes),
+    empty: 'Nothing to show.',
+  },
+  {
+    value: 'recent',
+    label: 'Recently played',
+    filter: (game) => Boolean(game.lastPlayedAt),
+    sort: (a, b) => timestamp(b) - timestamp(a),
+    info: (game) => timeAgo(game.lastPlayedAt),
+    empty: 'No last-played dates yet. Hit Sync.',
+  },
+  {
+    value: 'all',
+    label: 'All games (A-Z)',
+    sort: byName,
+    info: (game) => formatHours(game.totalPlaytimeMinutes),
+    empty: 'Nothing to show.',
+  },
+  {
+    value: 'unplayed',
+    label: 'Unplayed',
+    filter: (game) => game.totalPlaytimeMinutes === 0,
+    sort: byName,
+    info: () => '',
+    empty: 'No unplayed games. Impressive.',
+  },
 ];
 
-const SORTS = [
-  { value: 'period', label: 'Most played', fn: (a, b) => b.periodMinutes - a.periodMinutes },
-  { value: 'recent', label: 'Recently played', fn: (a, b) => lastPlayed(b) - lastPlayed(a) },
-  { value: 'total', label: 'All-time playtime', fn: (a, b) => b.totalPlaytimeMinutes - a.totalPlaytimeMinutes },
-  { value: 'name', label: 'Name (A-Z)', fn: (a, b) => a.name.localeCompare(b.name) },
-];
+const DEFAULT_VIEW = 'period';
 
 function Library() {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
 
   const range = isRange(params.get('range')) ? params.get('range') : DEFAULT_RANGE;
-  const sortKey = SORTS.some((sort) => sort.value === params.get('sort')) ? params.get('sort') : 'period';
-  const show = params.get('show') === 'unplayed' ? 'unplayed' : 'all';
+  const view = VIEWS.find((item) => item.value === params.get('view')) ?? VIEWS[0];
   const search = params.get('q') ?? '';
 
   const updateParam = (key, value) => {
@@ -46,9 +71,12 @@ function Library() {
     );
   };
 
+  // Only the Most played view needs per-period numbers; others skip the snapshot lookups.
+  const apiRange = view.value === 'period' ? range : 'all';
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['library', range],
-    queryFn: () => apiFetch(`/api/games?range=${range}`),
+    queryKey: ['library', apiRange],
+    queryFn: () => apiFetch(`/api/games?range=${apiRange}`),
     placeholderData: (previous) => previous,
   });
 
@@ -59,17 +87,12 @@ function Library() {
 
   const games = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const sorter = SORTS.find((sort) => sort.value === sortKey).fn;
-    const hideIdle = sortKey === 'period' && range !== 'all';
-    const requireDate = sortKey === 'recent';
 
     return (data?.games ?? [])
       .filter((game) => game.name.toLowerCase().includes(query))
-      .filter((game) => show === 'all' || game.totalPlaytimeMinutes === 0)
-      .filter((game) => show === 'unplayed' || !hideIdle || game.periodMinutes > 0)
-      .filter((game) => show === 'unplayed' || !requireDate || game.lastPlayedAt)
-      .sort(sorter);
-  }, [data, search, sortKey, range, show]);
+      .filter(view.filter ?? (() => true))
+      .sort(view.sort);
+  }, [data, search, view]);
 
   const total = data?.games.length ?? 0;
   const gridClass = 'grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
@@ -99,23 +122,19 @@ function Library() {
           />
         </label>
         <Select
-          label="Show"
-          value={show}
-          onChange={(value) => updateParam('show', value === 'all' ? '' : value)}
-          options={SHOW_OPTIONS}
+          label="View"
+          value={view.value}
+          onChange={(value) => updateParam('view', value === DEFAULT_VIEW ? '' : value)}
+          options={VIEWS}
         />
-        <Select
-          label="Time frame"
-          value={range}
-          onChange={(value) => updateParam('range', value === DEFAULT_RANGE ? '' : value)}
-          options={RANGES}
-        />
-        <Select
-          label="Sort by"
-          value={sortKey}
-          onChange={(value) => updateParam('sort', value === 'period' ? '' : value)}
-          options={SORTS}
-        />
+        {view.value === 'period' && (
+          <Select
+            label="Time frame"
+            value={range}
+            onChange={(value) => updateParam('range', value === DEFAULT_RANGE ? '' : value)}
+            options={RANGES}
+          />
+        )}
       </div>
 
       {isLoading && (
@@ -136,20 +155,17 @@ function Library() {
 
       {!isLoading && total > 0 && games.length === 0 && (
         <p className="text-sm text-ink-dim">
-          {search && `No games match "${search}".`}
-          {!search && show === 'unplayed' && 'No unplayed games. Impressive.'}
-          {!search && show === 'all' && sortKey === 'recent' && 'No last-played dates yet. Hit Sync.'}
-          {!search && show === 'all' && sortKey !== 'recent' && 'Nothing played in this time frame.'}
+          {search ? `No games match "${search}".` : view.empty}
         </p>
       )}
 
       <div className={gridClass}>
         {games.map((game, index) => (
           <GameCard
-            key={`${range}-${game.appId}`}
+            key={`${view.value}-${apiRange}-${game.appId}`}
             game={game}
             index={index}
-            minutes={sortKey === 'total' ? game.totalPlaytimeMinutes : game.periodMinutes}
+            label={view.info(game)}
           />
         ))}
       </div>

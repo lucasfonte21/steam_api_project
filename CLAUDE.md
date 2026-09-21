@@ -11,7 +11,8 @@ Personal resume project. Users log in with Steam, sync their library and playtim
 - Server: 4-space indent, single quotes, semicolons, `const` arrow functions, async/await with try/catch, `module.exports` at the bottom. Layered folders: `config/ models/ routes/ services/ jobs/ scripts/`.
 - Client: 2-space indent, single quotes, semicolons, function components, one component per file in `components/` or `pages/`. Use Tailwind classes plus the theme tokens in `src/index.css`; avoid ad-hoc hex colors.
 - Comments sparse; explain why, not what. Short plain commit messages.
-- Commit often: one commit per logical feature or fix, after build and lint pass. Do not push unless asked.
+- Commit often in small logical chunks, but ask the user to check and confirm before every commit. Do not push unless asked.
+- Before implementing, sanity-check the logic against the real data (e.g. what the default view shows with the user's actual library).
 
 ## Design direction
 - Steam colors (navy/slate backgrounds, light-blue accent), inspired by stats.fm. Minimal and clean, with a subtle glow on accents and hover states.
