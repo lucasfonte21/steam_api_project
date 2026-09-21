@@ -14,7 +14,7 @@ export const formatHours = (minutes) => {
 
 export const timeAgo = (date) => {
   if (!date) {
-    return 'Never';
+    return '';
   }
 
   const minutes = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
@@ -35,6 +35,15 @@ export const timeAgo = (date) => {
 
   const months = Math.floor(days / 30);
   return months < 12 ? `${months}mo ago` : `${Math.floor(months / 12)}y ago`;
+};
+
+// A missing date only means "never played" when total playtime is also zero.
+export const lastPlayedLabel = (game) => {
+  if (game.lastPlayedAt) {
+    return timeAgo(game.lastPlayedAt);
+  }
+
+  return game.totalPlaytimeMinutes === 0 ? 'Never played' : '';
 };
 
 export const headerImageUrl = (appId) =>

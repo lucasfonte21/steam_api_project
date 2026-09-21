@@ -10,6 +10,11 @@ import { DEFAULT_RANGE, RANGES, isRange } from '../lib/ranges';
 
 const lastPlayed = (game) => (game.lastPlayedAt ? new Date(game.lastPlayedAt).getTime() : 0);
 
+const SHOW_OPTIONS = [
+  { value: 'all', label: 'All games' },
+  { value: 'unplayed', label: 'Unplayed only' },
+];
+
 const SORTS = [
   { value: 'period', label: 'Most played', fn: (a, b) => b.periodMinutes - a.periodMinutes },
   { value: 'recent', label: 'Recently played', fn: (a, b) => lastPlayed(b) - lastPlayed(a) },
@@ -23,6 +28,7 @@ function Library() {
 
   const range = isRange(params.get('range')) ? params.get('range') : DEFAULT_RANGE;
   const sortKey = SORTS.some((sort) => sort.value === params.get('sort')) ? params.get('sort') : 'period';
+  const show = params.get('show') === 'unplayed' ? 'unplayed' : 'all';
   const search = params.get('q') ?? '';
 
   const updateParam = (key, value) => {
@@ -55,12 +61,15 @@ function Library() {
     const query = search.trim().toLowerCase();
     const sorter = SORTS.find((sort) => sort.value === sortKey).fn;
     const hideIdle = sortKey === 'period' && range !== 'all';
+    const requireDate = sortKey === 'recent';
 
     return (data?.games ?? [])
       .filter((game) => game.name.toLowerCase().includes(query))
-      .filter((game) => !hideIdle || game.periodMinutes > 0)
+      .filter((game) => show === 'all' || game.totalPlaytimeMinutes === 0)
+      .filter((game) => show === 'unplayed' || !hideIdle || game.periodMinutes > 0)
+      .filter((game) => show === 'unplayed' || !requireDate || game.lastPlayedAt)
       .sort(sorter);
-  }, [data, search, sortKey, range]);
+  }, [data, search, sortKey, range, show]);
 
   const total = data?.games.length ?? 0;
   const gridClass = 'grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
@@ -89,6 +98,12 @@ function Library() {
             className="w-full border border-line bg-base py-2 pl-9 pr-3 text-sm text-ink-bright outline-none transition-all duration-200 focus:border-accent focus:glow"
           />
         </label>
+        <Select
+          label="Show"
+          value={show}
+          onChange={(value) => updateParam('show', value === 'all' ? '' : value)}
+          options={SHOW_OPTIONS}
+        />
         <Select
           label="Time frame"
           value={range}
@@ -121,7 +136,10 @@ function Library() {
 
       {!isLoading && total > 0 && games.length === 0 && (
         <p className="text-sm text-ink-dim">
-          {search ? `No games match "${search}".` : 'Nothing played in this time frame.'}
+          {search && `No games match "${search}".`}
+          {!search && show === 'unplayed' && 'No unplayed games. Impressive.'}
+          {!search && show === 'all' && sortKey === 'recent' && 'No last-played dates yet. Hit Sync.'}
+          {!search && show === 'all' && sortKey !== 'recent' && 'Nothing played in this time frame.'}
         </p>
       )}
 
